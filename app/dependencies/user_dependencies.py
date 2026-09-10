@@ -1,7 +1,8 @@
 from typing import Annotated, Optional
 
 from fastapi import Depends, Header, HTTPException, Query, status
-
+from app.dependencies.database_dependency import DbSession
+from app.models.user_model import User
 from app.schemas.user_schema import RoleEnum
 from app.services import user_service
 
@@ -12,14 +13,16 @@ VALID_API_KEY = "device-systems-2026"
 def user_filters(
     role: Optional[RoleEnum] = Query(None, description="Filtrar por rol (admin, support, user)"),
     is_active: Optional[bool] = Query(None, description="Filtrar por estado (true o false)"),
+    sort_by: str = Query("name", pattern="^(name|created_at)$", description="Campo de ordenamiento"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$", description="Dirección del ordenamiento"),
 ) -> dict:
     """Dependencia reutilizable: agrupa los query params de filtrado."""
-    return {"role": role, "is_active": is_active}
+    return {"role": role, "is_active": is_active, "sort_by": sort_by, "sort_order": sort_order}
 
 
-def get_existing_user(user_id: int) -> dict:
+def get_existing_user(user_id: int, db: DbSession) -> User:
     """Dependencia reutilizable: resuelve el usuario por ID o lanza 404."""
-    user = user_service.get_user_by_id(user_id)
+    user = user_service.get_user_by_id(db, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
     return user
@@ -51,6 +54,6 @@ def get_api_config() -> dict:
 
 # Tipos anotados para inyectar las dependencias con Annotated + Depends()
 FiltersDep = Annotated[dict, Depends(user_filters)]
-UserDep = Annotated[dict, Depends(get_existing_user)]
+UserDep = Annotated[User, Depends(get_existing_user)]
 ApiKeyDep = Annotated[str, Depends(verify_api_key)]
 ConfigDep = Annotated[dict, Depends(get_api_config)]

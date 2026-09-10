@@ -1,6 +1,18 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from app.database.connection import Base, engine
+# Importar el modelo antes de create_all registra la tabla users en Base.metadata.
+from app.models import User  # noqa: F401
 from app.routes.user_routes import router as user_router
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Inicializa las tablas necesarias al arrancar la aplicación."""
+    Base.metadata.create_all(bind=engine)
+    yield
 
 app = FastAPI(
     title="device_systems API",
@@ -9,7 +21,7 @@ app = FastAPI(
         "Permite listar, filtrar, consultar, registrar, reemplazar, actualizar "
         "parcialmente y eliminar usuarios, aplicando validaciones estrictas con "
         "Pydantic v2 y una arquitectura profesional por capas "
-        "(routes → services → data)."
+        "(routes → services → SQLAlchemy → SQLite)."
     ),
     version="2.0.0",
     terms_of_service="https://example.com/terms-of-service",
@@ -31,6 +43,7 @@ app = FastAPI(
             ),
         },
     ],
+    lifespan=lifespan,
 )
 
 # Incluimos las rutas de usuarios

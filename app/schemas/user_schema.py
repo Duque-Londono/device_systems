@@ -1,6 +1,8 @@
-from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
 from enum import Enum
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # Definimos los roles permitidos usando Enum
 class RoleEnum(str, Enum):
@@ -18,6 +20,10 @@ class UserCreate(BaseModel):
 # Modelo para devolver un usuario (incluye el ID)
 class UserResponse(UserCreate):
     id: int
+    created_at: datetime
+
+    # Permite construir la respuesta desde una instancia ORM de SQLAlchemy.
+    model_config = ConfigDict(from_attributes=True)
 
 # Modelo para reemplazo completo (PUT): todos los campos son obligatorios
 class UserUpdate(BaseModel):
