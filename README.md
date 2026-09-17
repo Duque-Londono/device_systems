@@ -214,17 +214,29 @@ Las capturas del CRUD de usuarios de la versión anterior se conservan en `docs/
 
 ### Migraciones con Alembic
 
-- Captura de `alembic init` (o de la carpeta `alembic/` configurada).
-- Captura de `alembic revision --autogenerate -m "create users, devices and loans tables"`.
-- Captura de `alembic upgrade head`.
-- Captura de la estructura de tablas generadas (por ejemplo `alembic history` o el esquema en un visor de SQLite).
+Generación de la migración a partir de los modelos (`alembic revision --autogenerate`):
+
+![Generación de la migración con autogenerate](docs/alembic-revision.png)
+
+Aplicación de la migración (`alembic upgrade head`):
+
+![Aplicación de la migración](docs/alembic-upgrade.png)
+
+Historial de migraciones (`alembic history` / `alembic current`):
+
+![Historial de migraciones](docs/alembic-history.png)
+
+Estructura de las tablas generadas (`users`, `devices`, `loans`):
+
+![Estructura de tablas generadas](docs/db-structure.png)
 
 ### Swagger UI y ReDoc
 
 Swagger permite probar los endpoints desde `/docs`, organizados por tags **Users**, **Devices** y **Loans**.
 
-![Swagger UI de device_systems](docs/swagger-ui.png)
-![ReDoc de device_systems](docs/redoc.png)
+![Swagger UI con los tags Users, Devices y Loans](docs/swagger-tags.png)
+
+![ReDoc de device_systems (endpoint /redoc)](docs/redoc.png)
 
 ### CRUD del recurso users (evidencias existentes)
 
@@ -238,12 +250,27 @@ Swagger permite probar los endpoints desde `/docs`, organizados por tags **Users
 | Eliminación           | [delete-users.png](docs/delete-users.png)     |
 | Validaciones          | [validaciones.png](docs/validaciones.png)     |
 
-### Evidencias nuevas sugeridas
+### Dispositivos, préstamos, joins y filtros
 
-- Creación de usuario, dispositivo y préstamo.
-- Consultas con joins (`/loans/details`).
-- Filtros aplicados (`/loans?status=active`, `/devices?search=...`).
-- Devolución de dispositivo y verificación de disponibilidad.
+| Evidencia                                         | Qué demuestra                                            | Captura                                             |
+| ------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| Crear dispositivo                                 | `POST /devices` con respuesta `201`                     | [post-device.png](docs/post-device.png)             |
+| Crear préstamo                                    | `POST /loans` con respuesta `201` (estado `active`)     | [post-loan.png](docs/post-loan.png)                 |
+| Prestar dispositivo no disponible                 | `POST /loans` con respuesta `409`                       | [loan-no-disponible.png](docs/loan-no-disponible.png) |
+| Consulta con joins                                | `GET /loans/details` con usuario y dispositivo anidados | [loans-details.png](docs/loans-details.png)         |
+| Filtros aplicados                                 | `GET /loans?status=active` o `/devices?search=...`      | [loans-filtros.png](docs/loans-filtros.png)         |
+| Devolución de dispositivo                         | `PATCH /loans/{id}/return` con respuesta `200`          | [loan-return.png](docs/loan-return.png)             |
+| Dispositivo vuelve a estar disponible             | `GET /devices/{id}` con `is_available: true`            | [device-disponible.png](docs/device-disponible.png) |
+
+Vista previa:
+
+![Crear dispositivo](docs/post-device.png)
+![Crear préstamo](docs/post-loan.png)
+![Prestar dispositivo no disponible (409)](docs/loan-no-disponible.png)
+![Consulta con joins /loans/details](docs/loans-details.png)
+![Filtros aplicados](docs/loans-filtros.png)
+![Devolución de dispositivo](docs/loan-return.png)
+![Dispositivo disponible tras la devolución](docs/device-disponible.png)
 
 ## Reflexión
 
