@@ -1,29 +1,22 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 
-from app.database.connection import Base, engine
-# Importar el modelo antes de create_all registra la tabla users en Base.metadata.
-from app.models import User  # noqa: F401
+# Importar el paquete de modelos registra User, Device y Loan en Base.metadata.
+from app import models  # noqa: F401
+from app.routes.device_routes import router as device_router
+from app.routes.loan_routes import router as loan_router
 from app.routes.user_routes import router as user_router
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    """Inicializa las tablas necesarias al arrancar la aplicación."""
-    Base.metadata.create_all(bind=engine)
-    yield
 
 app = FastAPI(
     title="device_systems API",
     description=(
-        "API REST para la gestión de usuarios del sistema de dispositivos. "
-        "Permite listar, filtrar, consultar, registrar, reemplazar, actualizar "
-        "parcialmente y eliminar usuarios, aplicando validaciones estrictas con "
-        "Pydantic v2 y una arquitectura profesional por capas "
-        "(routes → services → SQLAlchemy → SQLite)."
+        "API REST para la gestión de usuarios, dispositivos y préstamos. "
+        "Incorpora migraciones de base de datos con Alembic, asociaciones entre "
+        "modelos (User, Device y Loan) y consultas avanzadas con joins y filtros, "
+        "sobre una arquitectura profesional por capas "
+        "(routes → services → SQLAlchemy → SQLite). El esquema de la base de datos "
+        "se gestiona con Alembic; ejecuta `alembic upgrade head` antes de arrancar."
     ),
-    version="2.0.0",
+    version="3.0.0",
     terms_of_service="https://example.com/terms-of-service",
     contact={
         "name": "Juan - Aprendiz SENA ADSO",
@@ -37,14 +30,27 @@ app = FastAPI(
         {
             "name": "Users",
             "description": (
-                "Operaciones CRUD sobre el recurso /users: listar con filtros, "
-                "consultar por ID, crear, reemplazar completo (PUT), actualizar "
-                "parcial (PATCH) y eliminar."
+                "Operaciones CRUD sobre el recurso /users y consulta de sus préstamos."
+            ),
+        },
+        {
+            "name": "Devices",
+            "description": (
+                "Operaciones CRUD sobre el recurso /devices, con filtros avanzados "
+                "e historial de préstamos por dispositivo."
+            ),
+        },
+        {
+            "name": "Loans",
+            "description": (
+                "Gestión de préstamos: creación con validación de disponibilidad, "
+                "devolución y consultas con joins y filtros."
             ),
         },
     ],
-    lifespan=lifespan,
 )
 
-# Incluimos las rutas de usuarios
+# Incluimos las rutas de cada recurso
 app.include_router(user_router)
+app.include_router(device_router)
+app.include_router(loan_router)
