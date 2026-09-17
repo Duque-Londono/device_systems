@@ -236,8 +236,7 @@ Swagger permite probar los endpoints desde `/docs`, organizados por tags **Users
 
 ![Swagger UI con los tags Users, Devices y Loans](docs/swagger-tags.png)
 
-![Swagger UI de device_systems](docs/swagger-ui.png)
-![ReDoc de device_systems](docs/redoc.png)
+![ReDoc de device_systems (endpoint /redoc)](docs/redoc.png)
 
 ### CRUD del recurso users (evidencias existentes)
 
@@ -255,7 +254,6 @@ Swagger permite probar los endpoints desde `/docs`, organizados por tags **Users
 
 | Evidencia                                         | Qué demuestra                                            | Captura                                             |
 | ------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
-| Crear usuario                                     | `POST /users` con respuesta `201`                       | [crear-usuario.png](docs/crear-usuario.png)         |
 | Crear dispositivo                                 | `POST /devices` con respuesta `201`                     | [post-device.png](docs/post-device.png)             |
 | Crear préstamo                                    | `POST /loans` con respuesta `201` (estado `active`)     | [post-loan.png](docs/post-loan.png)                 |
 | Prestar dispositivo no disponible                 | `POST /loans` con respuesta `409`                       | [loan-no-disponible.png](docs/loan-no-disponible.png) |
