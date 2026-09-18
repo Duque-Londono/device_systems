@@ -6,6 +6,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth.security import get_password_hash
 from app.models.user_model import User
 from app.schemas.user_schema import RoleEnum, UserCreate, UserPatch, UserUpdate
 
@@ -45,8 +46,13 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
 
 
 def create_user(db: Session, data: UserCreate) -> User:
-    """Crea y confirma un usuario; traduce la restricción única a un error de negocio."""
-    user = User(**data.model_dump())
+    """Crea y confirma un usuario; traduce la restricción única a un error de negocio.
+
+    La contraseña recibida en texto plano se almacena únicamente como hash bcrypt.
+    """
+    payload = data.model_dump()
+    plain_password = payload.pop("password")
+    user = User(**payload, hashed_password=get_password_hash(plain_password))
     db.add(user)
     try:
         db.commit()
