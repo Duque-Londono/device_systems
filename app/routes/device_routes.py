@@ -1,7 +1,8 @@
 """Endpoints REST para el recurso /devices."""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.dependencies.auth_dependency import require_admin, require_roles
 from app.dependencies.database_dependency import DbSession
 from app.dependencies.device_dependencies import DeviceDep, DeviceFiltersDep
 from app.schemas.device_schema import (
@@ -10,9 +11,13 @@ from app.schemas.device_schema import (
     DeviceResponse,
     DeviceUpdate,
 )
+from app.schemas.user_schema import RoleEnum
 from app.services import device_service
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
+
+# Autorización reutilizable: crear/editar dispositivos lo pueden hacer admin o support.
+require_admin_or_support = require_roles(RoleEnum.admin, RoleEnum.support)
 
 
 @router.get(
@@ -57,7 +62,12 @@ def get_device(device: DeviceDep):
         "**Códigos:** `201` creado, `400` serie duplicada, `422` cuerpo inválido."
     ),
     response_description="Dispositivo creado con su ID autogenerado.",
-    responses={400: {"description": "El número de serie ya está registrado."}},
+    responses={
+        400: {"description": "El número de serie ya está registrado."},
+        401: {"description": "Token ausente o inválido."},
+        403: {"description": "Requiere rol admin o support."},
+    },
+    dependencies=[Depends(require_admin_or_support)],
 )
 def create_device(data: DeviceCreate, db: DbSession):
     try:
@@ -78,8 +88,11 @@ def create_device(data: DeviceCreate, db: DbSession):
     response_description="Dispositivo actualizado con todos sus campos.",
     responses={
         400: {"description": "El número de serie ya está registrado."},
+        401: {"description": "Token ausente o inválido."},
+        403: {"description": "Requiere rol admin o support."},
         404: {"description": "Dispositivo no encontrado."},
     },
+    dependencies=[Depends(require_admin_or_support)],
 )
 def replace_device(data: DeviceUpdate, device: DeviceDep, db: DbSession):
     try:
@@ -101,8 +114,11 @@ def replace_device(data: DeviceUpdate, device: DeviceDep, db: DbSession):
     response_description="Dispositivo con los campos enviados aplicados.",
     responses={
         400: {"description": "No se enviaron datos o el número de serie ya existe."},
+        401: {"description": "Token ausente o inválido."},
+        403: {"description": "Requiere rol admin o support."},
         404: {"description": "Dispositivo no encontrado."},
     },
+    dependencies=[Depends(require_admin_or_support)],
 )
 def update_device(data: DevicePatch, device: DeviceDep, db: DbSession):
     try:
@@ -121,7 +137,12 @@ def update_device(data: DevicePatch, device: DeviceDep, db: DbSession):
         "**Códigos:** `204` eliminado, `404` no encontrado."
     ),
     response_description="Sin contenido: el dispositivo fue eliminado.",
-    responses={404: {"description": "Dispositivo no encontrado."}},
+    responses={
+        401: {"description": "Token ausente o inválido."},
+        403: {"description": "Requiere rol admin."},
+        404: {"description": "Dispositivo no encontrado."},
+    },
+    dependencies=[Depends(require_admin)],
 )
 def delete_device(device: DeviceDep, db: DbSession):
     device_service.delete_device(db, device)

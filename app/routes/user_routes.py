@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
+from app.dependencies.auth_dependency import get_current_active_user
 from app.dependencies.database_dependency import DbSession
 from app.dependencies.user_dependencies import (
     ApiKeyDep,
@@ -7,6 +8,7 @@ from app.dependencies.user_dependencies import (
     FiltersDep,
     UserDep,
 )
+from app.rate_limit import limiter
 from app.schemas.user_schema import UserCreate, UserPatch, UserResponse, UserUpdate
 from app.services import user_service
 
@@ -28,9 +30,15 @@ router = APIRouter(prefix="/users", tags=["Users"])
         "`422` si un filtro tiene un valor inválido (ej. rol inexistente)."
     ),
     response_description="Lista de usuarios que cumplen los filtros aplicados.",
-    responses={422: {"description": "Filtros u ordenamiento inválidos."}},
+    responses={
+        401: {"description": "Token ausente o inválido."},
+        422: {"description": "Filtros u ordenamiento inválidos."},
+        429: {"description": "Demasiadas solicitudes (rate limit)."},
+    },
+    dependencies=[Depends(get_current_active_user)],
 )
-def get_users(filters: FiltersDep, db: DbSession):
+@limiter.limit("30/minute")
+def get_users(filters: FiltersDep, db: DbSession, request: Request):
     return user_service.get_all_users(db, **filters)
 
 
@@ -46,7 +54,11 @@ def get_users(filters: FiltersDep, db: DbSession):
         "`422` si el ID no es un entero válido."
     ),
     response_description="Datos completos del usuario solicitado.",
-    responses={404: {"description": "Usuario no encontrado."}},
+    responses={
+        401: {"description": "Token ausente o inválido."},
+        404: {"description": "Usuario no encontrado."},
+    },
+    dependencies=[Depends(get_current_active_user)],
 )
 def get_user_by_id(user: UserDep):
     return user

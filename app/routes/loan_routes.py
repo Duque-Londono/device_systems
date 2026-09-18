@@ -1,12 +1,15 @@
 """Endpoints REST para el recurso /loans y consultas relacionadas."""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from app.dependencies.auth_dependency import get_current_active_user, require_roles
 from app.dependencies.database_dependency import DbSession
 from app.dependencies.device_dependencies import DeviceDep
 from app.dependencies.loan_dependencies import LoanDep, LoanFiltersDep
 from app.dependencies.user_dependencies import UserDep
+from app.rate_limit import limiter
 from app.schemas.loan_schema import LoanCreate, LoanDetailResponse, LoanResponse
+from app.schemas.user_schema import RoleEnum
 from app.services import loan_service
 from app.services.loan_service import (
     DeviceNotAvailableError,
@@ -16,6 +19,9 @@ from app.services.loan_service import (
 )
 
 router = APIRouter(tags=["Loans"])
+
+# Gestión de préstamos con privilegios: solo admin o support.
+require_admin_or_support = require_roles(RoleEnum.admin, RoleEnum.support)
 
 
 @router.get(
@@ -44,6 +50,11 @@ def list_loans(filters: LoanFiltersDep, db: DbSession):
         "**Códigos:** `200` con la lista."
     ),
     response_description="Préstamos con usuario y dispositivo anidados.",
+    responses={
+        401: {"description": "Token ausente o inválido."},
+        403: {"description": "Requiere rol admin o support."},
+    },
+    dependencies=[Depends(require_admin_or_support)],
 )
 def list_loan_details(db: DbSession):
     return loan_service.get_all_loans(db)
@@ -78,11 +89,15 @@ def get_loan(loan: LoanDep):
     ),
     response_description="Préstamo creado con estado 'active'.",
     responses={
+        401: {"description": "Token ausente o inválido."},
         404: {"description": "Usuario o dispositivo inexistente."},
         409: {"description": "El dispositivo no está disponible."},
+        429: {"description": "Demasiadas solicitudes (rate limit)."},
     },
+    dependencies=[Depends(get_current_active_user)],
 )
-def create_loan(data: LoanCreate, db: DbSession):
+@limiter.limit("10/minute")
+def create_loan(data: LoanCreate, db: DbSession, request: Request):
     try:
         return loan_service.create_loan(db, data.user_id, data.device_id)
     except (UserNotFoundError, DeviceNotFoundError) as error:
@@ -103,9 +118,12 @@ def create_loan(data: LoanCreate, db: DbSession):
     ),
     response_description="Préstamo actualizado con estado 'returned'.",
     responses={
+        401: {"description": "Token ausente o inválido."},
+        403: {"description": "Requiere rol admin o support."},
         404: {"description": "Préstamo no encontrado."},
         409: {"description": "El préstamo ya fue devuelto."},
     },
+    dependencies=[Depends(require_admin_or_support)],
 )
 def return_loan(loan: LoanDep, db: DbSession):
     try:
